@@ -19,7 +19,7 @@ from classy import Class
 
 
 class UCVLim(FishMat):
-    def __init__ (self, zmin=0, zmax=6, dz=0.1, kmax=1.0, kzscal=0.1,dk=0.01,fsky=0.5):
+    def __init__ (self, zmin=2, zmax=6, dz=0.1, kmax=2.0, kzscal=0.1,dk=0.01,fsky=0.15):
         nal=[('tau', False, 0.07),
             ('omegac',True,0.11987),
             ('As',False,1.0),
@@ -47,7 +47,8 @@ class UCVLim(FishMat):
         PkEI=[]
         for z,P,nm in zip(self.zval,PkC,self.nmodes):
             PkE=P*P/nm
-            PkE[np.where(self.kt>kzscal*(1+z))]=1e30
+            knl= 0.04+0.016*(1+z)**2.2
+            PkE[np.where(self.kt>knl)]=1e30
             PkEI.append(1/PkE)
         
         eps=0.002
@@ -113,7 +114,7 @@ class UCVLim(FishMat):
         zstr=",".join(map(str,self.zval+[self.zval[-1]+2]))
         pars = {
                 'output': 'mPk',
-                'P_k_max_h/Mpc': self.kval[-1]+2.0,
+                'P_k_max_h/Mpc': self.kval[-1]+3.0,
                 '100*theta_s' : 100*theta,
                 'tau_reio': 0.07,       
                 'omega_cdm': omegac,     
@@ -131,8 +132,11 @@ class UCVLim(FishMat):
         print (cosmo.sigma8(),cosmo.h(),cosmo.Neff(),cosmo.Omega_m())
         bg=cosmo.get_background()
         zs=bg['z']
-        Da=interp1d(zs,cosmo.h()*bg['comov. dist.'])## in flat universe, comoving angular is... in Mpc/h
-        Hi=interp1d(zs,cosmo.h()*1./(bg['H [1/Mpc]'])) # in Mpc/h
+        #Da=interp1d(zs,cosmo.h*bg['comov. dist.'])## in flat universe, comoving angular is... in Mpc/h
+        #Hi=interp1d(zs,cosmo.h()*1./(bg['H [1/Mpc]'])) # in Mpc/h
+        Da=interp1d(zs,bg['comov. dist.'])## cosmo.pk is actually all Mpc units
+        Hi=interp1d(zs,1./(bg['H [1/Mpc]'])) # 
+
         if (p<0):
             self.Da_fid=Da
             self.Hi_fid=Hi
