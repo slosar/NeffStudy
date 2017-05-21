@@ -7,16 +7,14 @@ import sys,os
 import numpy as np
 sys.path=["py"]+sys.path
 from S4Fisher import S4Fisher
-from UBAO import UBFisher
-from UCVLim import UCVLim
+from TracerPk import TracerPk
+
 F=S4Fisher()
 F2=S4Fisher()
-#U=UBFisher(6,fname="FishData/desilz_14000_0.65_1.9_0.1_1_ELG1440_3_bao_0.expt")
-#U=UBFisher(6)
-U=UCVLim()
+U=TracerPk()
 F2.addF(U)
-for n in U.plist:
-    print("%s sigma=%g %g %g"%(n,F.Error(n),F2.Error(n),U.Error(n)))
+for n in U.plist.nameList():
+    print("%s sigma=%g %g %g"%(n,F.error(n),F2.error(n),U.error(n)))
 
 #import matplotlib.pyplot as plt
 #di=np.sqrt(U.F.diagonal())
