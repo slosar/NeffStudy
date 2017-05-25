@@ -10,7 +10,7 @@ from scipy.interpolate import interp1d
 from FishMat import FishMat
 from ParameterVec import DefaultParamList, Parameter
 from ClassWrap import PkDiffer
-
+import matplotlib.pyplot as plt
 
 
 class TracerPk(FishMat):
@@ -34,12 +34,12 @@ class TracerPk(FishMat):
             Pn=self.Pnoise(self.kpar,self.kperp,z)
             PkE=(P+Pn)**2/nm
             knl=self.kNL(z)
-            PkE[np.where(self.kt>knl)]=1e30
+            ##PkE[np.where(self.kt>knl)]=1e30
             PkEI.append(1/PkE)
 
         return PkEI
     
-    def __init__ (self, zmin=2, zmax=6, dz=0.1, kmax=0.5, kzscal=0.1,dk=0.01,fsky=0.15):
+    def __init__ (self, zmin=3, zmax=4, dz=0.2, kmax=0.5, dk=0.01,fsky=0.15):
         pl=DefaultParamList()
         ignorelist=['tau','As']
         N=len(pl)
@@ -62,9 +62,8 @@ class TracerPk(FishMat):
         self.PkDiffer=PkDiffer(pl,self.zvals, self.kvals, self.kperp, self.kpar)
         self.calcNModes()
         PkEI=self.getInverseErrors()
-
-        
-        eps=0.005
+        self.PkEI=PkEI
+        eps=0.002
         Pderivs=[]
         print("Calculating derivatives... ", end='')
         for i1,p in enumerate(pl):
@@ -75,6 +74,7 @@ class TracerPk(FishMat):
             else:
                 Ders=None
             Pderivs.append(Ders)
+        self.Pderivs=Pderivs
         print("")
         F1=np.zeros((Nwb,Nwb))
         print ("Getting fisher: ",end='')
@@ -91,10 +91,13 @@ class TracerPk(FishMat):
                 for zi,z in enumerate(self.zvals):
                     v=(D1[zi]*PkEI[zi]*D2[zi]).sum()
                     F1[i1,i2]+=v
-                    F1[i2,i1]+=v
-        print("")
+                F1[i2,i1]=F1[i1,i2]
         F1+=np.diag([1e-30]*Nwb)
         C=la.inv(F1)[:N,:N]
+#        plt.figure()
+#        plt.imshow(np.log(F1),interpolation='nearest')
+#        plt.colorbar()
+#        plt.show()
         F=la.inv(C)
         print (F1[:N,:N])
         print (F[:N,:N])
