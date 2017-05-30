@@ -39,7 +39,7 @@ class TracerPk(FishMat):
 
         return PkEI
     
-    def __init__ (self, zmin=3, zmax=4, dz=0.2, kmax=0.5, dk=0.01,fsky=0.15):
+    def __init__ (self, zmin=2., zmax=5., dz=0.2, kmax=0.5, dk=0.01,fsky=0.15):
         pl=DefaultParamList()
         ignorelist=['tau','As']
         N=len(pl)
@@ -47,13 +47,21 @@ class TracerPk(FishMat):
         self.kvals=np.arange(dk/2,kmax,dk)
         self.Nk=len(self.kvals)
         self.dk=dk
-        self.dz=dz
         self.fsky=fsky
         self.kpar=np.outer(self.kvals,np.ones(self.Nk))
         self.kperp=self.kpar.T
         self.kt=np.sqrt(self.kpar**2+self.kperp**2)
         self.mu=self.kpar/self.kt
-        self.zvals=np.arange(zmin+dz/2,zmax,dz)
+
+        if (type(zmin)==float) or (type(zmin)==int):
+            self.zmin=np.arange(zmin,zmax-dz,dz)
+            self.zvals=self.zmin+dz/2
+            self.zmax=self.zmin+dz
+        else:
+            self.zmin=zmin
+            self.zmax=zmax
+            self.zvals=0.5*(self.zmin+self.zmax)
+
         for i,z in enumerate(self.zvals):
             pl.append (Parameter('b_delta_'+str(i),self.bias(z)))
             pl.append (Parameter('b_eta_'+str(i),self.biaseta(z)))
@@ -107,9 +115,7 @@ class TracerPk(FishMat):
     def calcNModes(self):
         self.nmodes=[]
         Da=self.PkDiffer.Da_fid
-        for z in self.zvals:
-            zlow=z-self.dz/2
-            zhigh=z+self.dz/2
+        for zlow,z,zhigh in zip(self.zmin,self.zvals,self.zmax):
             V=self.fsky*4*np.pi/3*(Da(zhigh)**3-Da(zlow)**3)
             Vk=2*np.pi*self.kperp*self.dk*self.dk
             cnm=V*Vk/(2*(2*np.pi)**3)

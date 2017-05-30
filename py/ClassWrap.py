@@ -78,10 +78,18 @@ class PkDiffer:
                 if mode=='store_fid':
                     self.cpk_cached.append(cpk)
                     self.mu_cached.append(mu)
-            bpk=cpk*(pl.value('b_delta_'+str(i))+pl.value('b_eta_'+str(i))*mu**2)**2
+            f=self.growth_f(z)
+            bpk=cpk*(pl.value('b_delta_'+str(i))+pl.value('b_eta_'+str(i))*f*mu**2)**2
             pkl.append(bpk)
 
         return pkl
+
+    def growth_f(self,z):
+        da=0.01
+        a=1./(1.+z)
+        gp,g,gm=[self.cosmo.scale_independent_growth_factor(1./ia-1.) for ia in [a+da,a,a-da]]
+        f=a*(gp-gm)/(2*g*da)
+        return f
 
     def ComputeCosmo(self,pl):
         #del self.cosmo
