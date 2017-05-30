@@ -99,7 +99,7 @@ class TracerPk(FishMat):
 #        plt.colorbar()
 #        plt.show()
         F=la.inv(C)
-        print (F1[:N,:N])
+        print ('\n')
         print (F[:N,:N])
         FishMat.__init__(self,pl[:N],F)
         
