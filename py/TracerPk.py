@@ -19,7 +19,7 @@ class TracerPk(FishMat):
         return 0
 
     def kNL(self,z):
-        return 0.04+0.016*(1+z)**2.2
+        return min(0.5,0.04+0.016*(1+z)**2.2)
 
     def bias(self,z):
         return 1.
@@ -28,18 +28,30 @@ class TracerPk(FishMat):
         return 1.
 
     def getInverseErrors(self):
+        if (not hasattr(self,"nmodes")):
+            self.calcNModes()
         PkC=self.PkDiffer.cube0
         PkEI=[] #inverse errors
         for z,P,nm in zip(self.zvals,PkC,self.nmodes):
             Pn=self.Pnoise(self.kpar,self.kperp,z)
             PkE=(P+Pn)**2/nm
             knl=self.kNL(z)
-            ##PkE[np.where(self.kt>knl)]=1e30
+            PkE[np.where(self.kt>knl)]=1e30
             PkEI.append(1/PkE)
 
         return PkEI
+
+    def calcNModes(self):
+        self.nmodes=[]
+        Da=self.PkDiffer.Da_fid
+        for zlow,z,zhigh in zip(self.zmin,self.zvals,self.zmax):
+            V=self.fsky*4*np.pi/3*(Da(zhigh)**3-Da(zlow)**3)
+            Vk=2*np.pi*self.kperp*self.dk*self.dk
+            cnm=V*Vk/(2*(2*np.pi)**3)
+            self.nmodes.append(cnm)
     
-    def __init__ (self, zmin=2., zmax=5., dz=0.2, kmax=0.5, dk=0.01,fsky=0.15):
+
+    def __init__ (self, zmin=2., zmax=5., dz=0.8, kmax=0.5, dk=0.01,fsky=0.5):
         pl=DefaultParamList()
         ignorelist=['tau','As']
         N=len(pl)
@@ -50,6 +62,8 @@ class TracerPk(FishMat):
         self.fsky=fsky
         self.kpar=np.outer(self.kvals,np.ones(self.Nk))
         self.kperp=self.kpar.T
+        #plt.imshow(self.kperp)
+        #plt.show()
         self.kt=np.sqrt(self.kpar**2+self.kperp**2)
         self.mu=self.kpar/self.kt
 
@@ -68,7 +82,6 @@ class TracerPk(FishMat):
         Nwb=len(pl) # with bias parameters
         print("Setting up class...")
         self.PkDiffer=PkDiffer(pl,self.zvals, self.kvals, self.kperp, self.kpar)
-        self.calcNModes()
         PkEI=self.getInverseErrors()
         self.PkEI=PkEI
         eps=0.002
@@ -111,14 +124,5 @@ class TracerPk(FishMat):
         print (F[:N,:N])
         FishMat.__init__(self,pl[:N],F)
         
-    
-    def calcNModes(self):
-        self.nmodes=[]
-        Da=self.PkDiffer.Da_fid
-        for zlow,z,zhigh in zip(self.zmin,self.zvals,self.zmax):
-            V=self.fsky*4*np.pi/3*(Da(zhigh)**3-Da(zlow)**3)
-            Vk=2*np.pi*self.kperp*self.dk*self.dk
-            cnm=V*Vk/(2*(2*np.pi)**3)
-            self.nmodes.append(cnm)
     
         
