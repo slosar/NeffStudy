@@ -23,6 +23,8 @@ class PkDiffer:
         self.ComputeCosmo(pl)
         bg=self.cosmo.get_background()
         zs=bg['z']
+        zs=zs[::-1]
+        print(zs)
         Da=interp1d(zs,bg['comov. dist.'])## cosmo.pk is actually all Mpc units
         Hi=interp1d(zs,1./(bg['H [1/Mpc]'])) # 
         self.Da_fid=Da
@@ -56,6 +58,7 @@ class PkDiffer:
         mode can be 'store_fid', 'use_fid' or normal"""
         bg=self.cosmo.get_background()
         zs=bg['z']
+        zs=zs[::-1]
         Da=interp1d(zs,bg['comov. dist.'])## cosmo.pk is actually all Mpc units
         Hi=interp1d(zs,1./(bg['H [1/Mpc]'])) # 
         if (mode=='store_fid'):
