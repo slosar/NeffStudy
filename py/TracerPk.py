@@ -1,6 +1,6 @@
-##
-## Matrix for a tracer measuring Pk
-##
+#
+# Matrix for a tracer measuring Pk
+#
 
 from __future__ import division, print_function
 import sys
@@ -27,18 +27,19 @@ class TracerPk(FishMat):
     def biaseta(self,z):
         return 1.
 
+    #def SNR(self, z):
+
     def getInverseErrors(self):
         if (not hasattr(self,"nmodes")):
             self.calcNModes()
         PkC=self.PkDiffer.cube0
-        PkEI=[] #inverse errors
-        for z,P,nm in zip(self.zvals,PkC,self.nmodes):
+        PkEI=[] 
+        for z,P,nm, snr in zip(self.zvals,PkC,self.nmodes, self.SNR):
             Pn=self.Pnoise(self.kpar,self.kperp,z)
             PkE=(P+Pn)**2/nm
             knl=self.kNL(z)
             PkE[np.where(self.kt>knl)]=1e30
-            PkEI.append(1/PkE)
-
+            PkEI.append(snr**2./PkE)
         return PkEI
 
     def calcNModes(self):
@@ -51,12 +52,12 @@ class TracerPk(FishMat):
             self.nmodes.append(cnm)
     
 
-    def __init__ (self, zmin=2., zmax=5., dz=0.8, kmax=0.5, dk=0.01,fsky=0.5):
+    def __init__ (self, exp_name, zvals, zmin, zmax, SNR, kmax=0.5, dk=0.01, fsky=0.5):
         pl=DefaultParamList()
         ignorelist=['tau','As']
         N=len(pl)
 
-        self.kvals=np.arange(dk/2,kmax,dk)
+        self.kvals=np.arange(dk,kmax+dk,dk)  
         self.Nk=len(self.kvals)
         self.dk=dk
         self.fsky=fsky
@@ -67,24 +68,33 @@ class TracerPk(FishMat):
         self.kt=np.sqrt(self.kpar**2+self.kperp**2)
         self.mu=self.kpar/self.kt
 
-        if (type(zmin)==float) or (type(zmin)==int):
-            self.zmin=np.arange(zmin,zmax-dz,dz)
-            self.zvals=self.zmin+dz/2
-            self.zmax=self.zmin+dz
-        else:
-            self.zmin=zmin
-            self.zmax=zmax
-            self.zvals=0.5*(self.zmin+self.zmax)
+        zmax=[]
+        zmin=[]
+        for i in range(len(zvals)):
+            if i == 0:
+                zlow=0.
+                zhigh=2.*zvals[i]
+            else:
+                zlow=zmax[i-1]
+                zhigh=zvals[i]+zlow-zmin[i-1]
+            zmin.append(zlow)
+            zmax.append(zhigh)
+        self.zvals=zvals
+        self.zmax=zmax
+        self.zmin=zmin
+        assert(zmax[1] == zmin[2])
 
+        self.SNR=SNR[:,:self.Nk,:self.Nk]
         for i,z in enumerate(self.zvals):
-            pl.append (Parameter('b_delta_'+str(i),self.bias(z)))
-            pl.append (Parameter('b_eta_'+str(i),self.biaseta(z)))
+            pl.append (Parameter('b_delta_'+str(i),self.bias(z), '   '))
+            pl.append (Parameter('b_eta_'+str(i),self.biaseta(z), '   '))
         Nwb=len(pl) # with bias parameters
-        print("Setting up class...")
+        print("Setting up class...")        
         self.PkDiffer=PkDiffer(pl,self.zvals, self.kvals, self.kperp, self.kpar)
         PkEI=self.getInverseErrors()
         self.PkEI=PkEI
         eps=0.002
+        #eps=0.01
         Pderivs=[]
         print("Calculating derivatives... ", end='')
         for i1,p in enumerate(pl):
@@ -110,7 +120,7 @@ class TracerPk(FishMat):
                 if D2 is None:
                     continue
                 for zi,z in enumerate(self.zvals):
-                    v=(D1[zi]*PkEI[zi]*D2[zi]).sum()
+                    v=(D1[zi]*PkEI[zi]*D2[zi]).sum() 
                     F1[i1,i2]+=v
                 F1[i2,i1]=F1[i1,i2]
         F1+=np.diag([1e-30]*Nwb)
@@ -120,9 +130,13 @@ class TracerPk(FishMat):
 #        plt.colorbar()
 #        plt.show()
         F=la.inv(C)
+        
+        #F=F*10e10
+
         print ('\n')
         print (F[:N,:N])
-        FishMat.__init__(self,pl[:N],F)
+        #print(F)
+        FishMat.__init__(self,pl[:N],F)  
+        FishMat.saveF(self,F,exp_name)
         
-    
-        
+#TracerPk()
