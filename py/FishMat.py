@@ -5,6 +5,7 @@ from __future__ import division, print_function
 import numpy as np
 import scipy.linalg as la
 from ParameterVec import DefaultParamList
+import pickle
 
 class FishMat(object):
 
@@ -19,6 +20,11 @@ class FishMat(object):
 
     def calcC(self):
         self.C=la.inv(self.F+np.diag([1e-30]*self.N))
+
+    def saveF(self, F, exp_name):
+        """Save Fisher matrix into a pickle file to load into other modules
+        """
+        pickle.dump(F, open(str(exp_name)+'_fisher_matrix.p', 'wb'))
     
     def addF(self,F):
         if (type(F)==list):
