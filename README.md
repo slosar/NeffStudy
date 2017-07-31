@@ -14,6 +14,6 @@ Modules should be run from the parent directory, e.g.:
 - [CLASS code and its python wrapper classy](http://class-code.net/)
 
 Here, the signal-to-noise ratio (SNR) is computed in a simulation from Cosmic Visions:
-- [SNR Data Cube from Cosmic Visions](http://www.phas.ubc.ca/~richard/sn_lowz_expA_50K.h5)
+- [SNR Data Cube from Cosmic Visions](http://www.phas.ubc.ca/~richard/sn_lowz_expA_50K.h5). This h5py file should be kept in the parent directory.
 - [Cosmic Visions Fisher repo](https://github.com/radiohep/CVFisher)
 
