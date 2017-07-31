@@ -1,3 +1,7 @@
+#
+# Create triangle plots and deal with multiple Fisher matrices.
+#
+
 #from __future__ import division, print_function
 from ParameterVec import DefaultParamList
 import numpy as np
@@ -318,34 +322,32 @@ pl=DefaultParamList()
 P=pl.valueList()
 N=pl.nameLaTeX()
 
-#Get 21cm plot
-F_21cm=FisherAnalysis(P,N).import_fisher('21cm_fisher_matrix.p')
+# Get 21cm plot
+F_21cm=FisherAnalysis(P,N).import_fisher('FishData/21cm_fisher_matrix.p')
 C_21cm=FisherAnalysis(P,N).covariance(F_21cm)
-FisherAnalysis(P,N).plot_error_matrix(C_21cm, '21cm_triangle')
-
-"""
+FisherAnalysis(P,N).plot_error_matrix(C_21cm, 'FishData/21cm_triangle')
 
 #Get CMBS4 plot
-F_S4=FisherAnalysis(P,N).import_fisher('fisherS4_matrix.p')
+F_S4=FisherAnalysis(P,N).import_fisher('FishData/CMBS4_fisher_matrix.p')
 C_S4=FisherAnalysis(P,N).covariance(F_S4)
-FisherAnalysis(P,N).plot_error_matrix(C_S4, 'CMBS4_triangle')
+FisherAnalysis(P,N).plot_error_matrix(C_S4, 'FishData/CMBS4_triangle')
 
-#Plot of 21cm vs CMBS4
-C_21cm_vs_S4=FisherAnalysis(P,N).covariance_array(C_21cm, C_S4)
-FisherAnalysis(P,N).plot_error_matrix_combined(C_21cm_vs_S4, '21cm_vs_CMBS4_triangle')
+##Plot of 21cm vs CMBS4
+#C_21cm_vs_S4=FisherAnalysis(P,N).covariance_array(C_21cm, C_S4)
+#FisherAnalysis(P,N).plot_error_matrix_combined(C_21cm_vs_S4, '21cm_vs_CMBS4_triangle')
 
-#Plot of 21cm vs 21cm+CMBS4
-C_21cm_and_C_S4=FisherAnalysis(P,N).covariance(F_21cm+F_S4)
-C_21cm_vs_C_21cm_and_S4=FisherAnalysis(P,N).covariance_array(C_21cm, C_21cm_and_C_S4)
-FisherAnalysis(P,N).plot_error_matrix_combined(C_21cm_vs_C_21cm_and_S4, '21cm_vs_21cmCMBS4_triangle')
+##Plot of 21cm vs 21cm+CMBS4
+#C_21cm_and_C_S4=FisherAnalysis(P,N).covariance(F_21cm+F_S4)
+#C_21cm_vs_C_21cm_and_S4=FisherAnalysis(P,N).covariance_array(C_21cm, C_21cm_and_C_S4)
+#FisherAnalysis(P,N).plot_error_matrix_combined(C_21cm_vs_C_21cm_and_S4, '21cm_vs_21cmCMBS4_triangle')
 
 #Plot of CMBS4 vs 21cm+CMBS4
 C_21cm_and_C_S4=FisherAnalysis(P,N).covariance(F_21cm+F_S4)
 C_S4_vs_C_21cm_and_S4=FisherAnalysis(P,N).covariance_array(C_S4, C_21cm_and_C_S4)
-FisherAnalysis(P,N).plot_error_matrix_combined(C_S4_vs_C_21cm_and_S4, 'CMBS4_vs_21cmCMBS4_triangle')
+FisherAnalysis(P,N).plot_error_matrix_combined(C_S4_vs_C_21cm_and_S4, 'FishData/CMBS4_vs_21cmCMBS4_triangle')
 
 # Get 1-sigma errors
 print FisherAnalysis(P,N).error(C_21cm)             # 21cm alone
 print FisherAnalysis(P,N).error(C_S4)               # CMBS4 alone
 print FisherAnalysis(P,N).error(C_21cm_and_C_S4)    # 21cm + CMBS4 
-"""
+

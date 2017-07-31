@@ -1,5 +1,5 @@
 #
-# Matrix for a tracer measuring Pk
+# Matrix for a tracer measuring Pk.
 #
 
 from __future__ import division, print_function
@@ -12,34 +12,57 @@ from ParameterVec import DefaultParamList, Parameter
 from ClassWrap import PkDiffer
 import matplotlib.pyplot as plt
 
-
 class TracerPk(FishMat):
 
     def Pnoise(self,kpar,kperp,z):
         return 0
 
     def kNL(self,z):
+        """Returns the comoving wavenumber on the threshold
+        of the linear and non-linear regimes.
+        """
         return min(0.5,0.04+0.016*(1+z)**2.2)
 
-    def bias(self,z):
+    def bias(self,z): 
         return 1.
-
+        
     def biaseta(self,z):
         return 1.
 
-    #def SNR(self, z):
+    def kmu2(self):
+        """Returns a Nkmu2 x Nkmu2 matrix of (kt^i)(mu^2)^j values.
+        """
+        kmu2=[]
+        for i in range(self.Nkmu2):
+            for j in range(self.Nkmu2):
+                km=(self.kt**i)+(self.mu**2.)**j
+            kmu2.append(km)
+        return kmu2
 
     def getInverseErrors(self):
+        """Returns the inverse errors to be used in the Fisher matrix calculation.
+        If SNR as a function of k_par and k_perp is specified for a given experiment,
+        PkEI=1/\Delta P=SNR/P is returned.  
+        If a specific experiment is not specified and hence no SNR is given,
+        PkEI is calculated using the normal modes from calcNModes().
+        """
         if (not hasattr(self,"nmodes")):
             self.calcNModes()
         PkC=self.PkDiffer.cube0
         PkEI=[] 
-        for z,P,nm, snr in zip(self.zvals,PkC,self.nmodes, self.SNR):
-            Pn=self.Pnoise(self.kpar,self.kperp,z)
-            PkE=(P+Pn)**2/nm
-            knl=self.kNL(z)
-            PkE[np.where(self.kt>knl)]=1e30
-            PkEI.append(snr**2./PkE)
+        if self.SNR=='None':
+            for z,P,nm, in zip(self.zvals,PkC,self.nmodes):
+                Pn=self.Pnoise(self.kpar,self.kperp,z)
+                PkE=(P+Pn)**2/nm
+                knl=self.kNL(z)
+                PkE[np.where(self.kt>knl)]=1e30
+                PkEI.append(1/PkE)
+        else:
+            for z,P,snr in zip(self.zvals, PkC, self.SNR):
+                knl=self.kNL(z)
+                PkE=P/snr
+                PkE[np.where(self.kt>knl)]=1e30
+                PkEI.append(1/PkE)
         return PkEI
 
     def calcNModes(self):
@@ -50,11 +73,11 @@ class TracerPk(FishMat):
             Vk=2*np.pi*self.kperp*self.dk*self.dk
             cnm=V*Vk/(2*(2*np.pi)**3)
             self.nmodes.append(cnm)
-    
 
-    def __init__ (self, exp_name, zvals, zmin, zmax, SNR, kmax=0.5, dk=0.01, fsky=0.5):
+    def __init__ (self, zvals, zmin, zmax, exp_name='None', SNR='None', kmax=0.5, dk=0.01, fsky=0.5, Nkmu2=3):
         pl=DefaultParamList()
-        ignorelist=['tau','As']
+        #ignorelist=['tau','As']
+        ignorelist=[]
         N=len(pl)
 
         self.kvals=np.arange(dk,kmax+dk,dk)  
@@ -67,7 +90,9 @@ class TracerPk(FishMat):
         #plt.show()
         self.kt=np.sqrt(self.kpar**2+self.kperp**2)
         self.mu=self.kpar/self.kt
+        self.Nkmu2=Nkmu2
 
+        # Find the redshift values to be used in normal mode calculation, calcNModes()
         zmax=[]
         zmin=[]
         for i in range(len(zvals)):
@@ -85,16 +110,25 @@ class TracerPk(FishMat):
         assert(zmax[1] == zmin[2])
 
         self.SNR=SNR[:,:self.Nk,:self.Nk]
+
+        # Add bias parameters to parameter list
         for i,z in enumerate(self.zvals):
-            pl.append (Parameter('b_delta_'+str(i),self.bias(z), '   '))
-            pl.append (Parameter('b_eta_'+str(i),self.biaseta(z), '   '))
-        Nwb=len(pl) # with bias parameters
+            pl.append(Parameter('b_delta_'+str(i), self.bias(z), ''))
+            pl.append(Parameter('b_eta_'+str(i), self.biaseta(z), ''))
+
+        # Add (kt^i)(mu^2)^j parameters to parameter list
+        for i in range(self.Nkmu2):
+            for j in range(self.Nkmu2):
+                pl.append(Parameter('kmu2_'+str(i)+str(j), self.kmu2()[i][j],''))
+
+        Nwb=len(pl) # with additional parameters
+
+        # Calculate Fisher matrix
         print("Setting up class...")        
-        self.PkDiffer=PkDiffer(pl,self.zvals, self.kvals, self.kperp, self.kpar)
+        self.PkDiffer=PkDiffer(pl,self.zvals, self.kvals, self.kperp, self.kpar, self.Nkmu2)
         PkEI=self.getInverseErrors()
         self.PkEI=PkEI
         eps=0.002
-        #eps=0.01
         Pderivs=[]
         print("Calculating derivatives... ", end='')
         for i1,p in enumerate(pl):
@@ -130,13 +164,8 @@ class TracerPk(FishMat):
 #        plt.colorbar()
 #        plt.show()
         F=la.inv(C)
-        
-        #F=F*10e10
-
         print ('\n')
         print (F[:N,:N])
-        #print(F)
-        FishMat.__init__(self,pl[:N],F)  
-        FishMat.saveF(self,F,exp_name)
-        
-#TracerPk()
+        FishMat.__init__(self, pl[:N], F)
+        if exp_name != 'None':
+            FishMat.saveF(self, F, exp_name)

@@ -1,9 +1,10 @@
 #
-# Details for a generalized 21cm experiment, similar to BMX
+# Details for a generalized 21cm experiment, similar to BMX.
 #
 
 from __future__ import division, print_function
 import sys
+import os.path
 from TracerPk import TracerPk
 import numpy as np
 import h5py
@@ -11,15 +12,15 @@ import h5py
 class BMX(TracerPk):
 
     def __init__(self):
-        self.da=h5py.File("sn_lowz_expA_50K.h5")       # Data cube from Cosmic Visions
+        self.da=h5py.File('sn_lowz_expA_50K.h5', 'r') # Data cube from Cosmic Visions
         zvals=self.zvals()
         min_z=zvals[0]
         max_z=zvals[-1]
         SNR=self.SNR()
-        TracerPk.__init__(self, '21cm', zvals, min_z, max_z, SNR)
+        TracerPk.__init__(self, zvals, min_z, max_z, '21cm', SNR)
 
     def zvals(self):
-        """Redshift values in data cube
+        """Redshift values in data cube.
         """
         zs=[]
         for i in range(9):
@@ -30,7 +31,7 @@ class BMX(TracerPk):
         return zs
 
     def SNR(self):
-        """Signal-to-noise ratio values in data cube
+        """Signal-to-noise ratio values in data cube.
         """
         snr=[]
         for i in range(9):
@@ -39,4 +40,5 @@ class BMX(TracerPk):
         snr=np.array(snr)
         return snr
 
+# Create an instance of this class.
 BMX()

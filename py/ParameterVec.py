@@ -1,13 +1,13 @@
-##
-## Simple parameter vector class
-##
-
 #
+# Simple parameter vector class.
+#
+
 # Simple class for dealing with Parameter.
-# Parameter has a name, a value, an error and some bounds
+# Parameter has a name, a value, an error and some bounds.
 # Names are also latex names.
 
 class Parameter:
+
     def __init__(self,name,value, LaTeX):
         self.name=name
         self.value=value

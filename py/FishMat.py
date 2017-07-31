@@ -1,6 +1,7 @@
-##
-## Super simple Fisher matrix class
-##
+#
+# Super simple Fisher matrix class.
+#
+
 from __future__ import division, print_function
 import numpy as np
 import scipy.linalg as la
@@ -24,7 +25,7 @@ class FishMat(object):
     def saveF(self, F, exp_name):
         """Save Fisher matrix into a pickle file to load into other modules
         """
-        pickle.dump(F, open(str(exp_name)+'_fisher_matrix.p', 'wb'))
+        pickle.dump(F, open('FishData/'+str(exp_name)+'_fisher_matrix.p', 'wb'))
     
     def addF(self,F):
         if (type(F)==list):
