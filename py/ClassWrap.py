@@ -40,8 +40,18 @@ class PkDiffer:
         #     ufrac=frac
         ufrac=frac
         npl=copy.deepcopy(self.plist)
+        if (pa.value==0):
+            if 'Mkmu2_' in pa.name:
+                step=0.01
+            elif 'Akmu2_' in pa.name:
+                step=100
+            else:
+                print('WTF?')
+                exit()
+        else:
+            step=pa.value*ufrac
         for fa in [+1,-1]:
-            nval=pa.value*(1.+1.0*fa*ufrac)
+            nval=pa.value+fa*step
             npl.setValue(pa.name,nval)
             if "b_" in pa.name:
                 mode="use_fid"
@@ -49,7 +59,9 @@ class PkDiffer:
                 mode="normal"
                 self.ComputeCosmo(npl)
             de.append(self.getCube(npl,mode))
-        toret=[(dp-dm)/(2*pa.value*fa*ufrac) for dp,dm in zip(de[0],de[1])]
+        #dp,dm=de
+        #toret=(dp-dm)/(2*step)
+        toret=[(dp-dm)/(2*step) for dp,dm in zip(de[0],de[1])]
         return toret
         
     def getCube(self,pl,mode='normal'):
@@ -63,8 +75,8 @@ class PkDiffer:
         if (mode=='store_fid'):
             self.Da_fid=Da
             self.Hi_fid=Hi
-            self.cpk_cached, self.mu_cached=[], []
-        pkl = []
+            self.cpk_cached, self.mu_cached=[],[]
+        pkl=[]
         for i,z in enumerate(self.zvals):
             if (mode=='use_fid'):
                 cpk=self.cpk_cached[i]
@@ -79,17 +91,27 @@ class PkDiffer:
                 #print(len(kt.flatten()))
                 cpk=[self.cosmo.pk(k,z) for k in kt.flatten()]
                 cpk=np.array(cpk).reshape(kt.shape)
-                if mode=='store_fid':
+                M=np.zeros(kt.shape)
+                A=np.zeros(kt.shape)
+                for j in range(self.Nkmu2):
+                    for k in range(self.Nkmu2):
+                        m=pl.value('Mkmu2_'+str(i)+str(j)+str(k))
+                        a=pl.value('Akmu2_'+str(i)+str(j)+str(k))
+                        if (a==0) and (m==0):
+                            continue
+                        X=(kt**j)*(mu**(2*k))
+                        M+=X*m
+                        A+=X*a
+                cpk=A+cpk*(1+M)
+
+                if (mode=='store_fid'):
                     self.cpk_cached.append(cpk)
                     self.mu_cached.append(mu)
+            
             f=self.growth_f(z)
             bpk=cpk*(pl.value('b_delta_'+str(i))+pl.value('b_eta_'+str(i))*f*mu**2)**2
             pkl.append(bpk)
             
-        for i in range(self.Nkmu2):
-            for j in range(self.Nkmu2):
-                pkl=pkl*(1+pl.value('kmu2_'+str(i)+str(j)))
-
         return pkl
 
     def growth_f(self,z):

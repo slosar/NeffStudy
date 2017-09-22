@@ -108,6 +108,7 @@ class TracerPk(FishMat):
         self.zmax=zmax
         self.zmin=zmin
         assert(zmax[1] == zmin[2])
+        self.Nz=len(zvals)
 
         self.SNR=SNR[:,:self.Nk,:self.Nk]
 
@@ -115,20 +116,23 @@ class TracerPk(FishMat):
         for i,z in enumerate(self.zvals):
             pl.append(Parameter('b_delta_'+str(i), self.bias(z), ''))
             pl.append(Parameter('b_eta_'+str(i), self.biaseta(z), ''))
+        Nwb=len(pl) # with biases
 
-        # Add (kt^i)(mu^2)^j parameters to parameter list
-        for i in range(self.Nkmu2):
+        # Add (a_zij)(kt^i)(mu^2)^j parameters to parameter list
+        # Note that the fiducial a_zij values are zero
+        for i in range(self.Nz):
             for j in range(self.Nkmu2):
-                pl.append(Parameter('kmu2_'+str(i)+str(j), self.kmu2()[i][j],''))
-
-        Nwb=len(pl) # with additional parameters
+                for k in range(self.Nkmu2):
+                    pl.append(Parameter('Mkmu2_'+str(i)+str(j)+str(k),0,''))
+                    pl.append(Parameter('Akmu2_'+str(i)+str(j)+str(k),0,''))
+        Nwbkmu2=len(pl) # with biases and kmu2 parameters
 
         # Calculate Fisher matrix
         print("Setting up class...")        
         self.PkDiffer=PkDiffer(pl,self.zvals, self.kvals, self.kperp, self.kpar, self.Nkmu2)
         PkEI=self.getInverseErrors()
         self.PkEI=PkEI
-        eps=0.002
+        eps=0.01
         Pderivs=[]
         print("Calculating derivatives... ", end='')
         for i1,p in enumerate(pl):
@@ -141,7 +145,7 @@ class TracerPk(FishMat):
             Pderivs.append(Ders)
         self.Pderivs=Pderivs
         print("")
-        F1=np.zeros((Nwb,Nwb))
+        F1=np.zeros((Nwbkmu2,Nwbkmu2))
         print ("Getting fisher: ",end='')
         for i1,D1 in enumerate(Pderivs):
             print (" %i"%i1,end='')
@@ -157,15 +161,29 @@ class TracerPk(FishMat):
                     v=(D1[zi]*PkEI[zi]*D2[zi]).sum() 
                     F1[i1,i2]+=v
                 F1[i2,i1]=F1[i1,i2]
-        F1+=np.diag([1e-30]*Nwb)
-        C=la.inv(F1)[:N,:N]
+        F1+=np.diag([1e-30]*Nwbkmu2)
+
+        # Fisher matrix with bias and kmu2 parametetrs
+        F1_bkmu2=F1
+        C_bkmu2=la.inv(F1_bkmu2)[:N,:N]
+        F_bkmu2=la.inv(C_bkmu2)
+        FishMat.__init__(self, pl[:N], F_bkmu2)
+        if exp_name != 'None':
+            FishMat.saveF(self, F_bkmu2, exp_name+'_bkmu2')
+
+        # Fisher matrix with bias parameters only
+        F1_b=F1[:Nwb,:Nwb]
+        C_b=la.inv(F1_b)[:N,:N]
+        F_b=la.inv(C_b)
+        FishMat.__init__(self, pl[:N], F_b)
+        if exp_name != 'None':
+            FishMat.saveF(self, F_b, exp_name+'_b')
+
+        # Print Fisher matrix with bias and kmu2 parameters
+        print ('\n')
+        print (F_bkmu2[:N,:N])
+
 #        plt.figure()
 #        plt.imshow(np.log(F1),interpolation='nearest')
 #        plt.colorbar()
 #        plt.show()
-        F=la.inv(C)
-        print ('\n')
-        print (F[:N,:N])
-        FishMat.__init__(self, pl[:N], F)
-        if exp_name != 'None':
-            FishMat.saveF(self, F, exp_name)

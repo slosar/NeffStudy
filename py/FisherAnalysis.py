@@ -179,7 +179,27 @@ class FisherAnalysis(object):
                     if i != 0:
                         for tick in axis.yaxis.get_major_ticks():
                             tick.label1.set_visible(False)
-
+                """            
+                if (j<i):
+                    # 1-sigma ellipse
+                    errorellipse, xyaxes=self.error_ellipse(covariance_matrix, i,j, nstd=nstd, clr="cornflowerblue", alpha=.3)
+                    # 2-sigma ellipse
+                    ere2, xyaxes2 = self.error_ellipse(covariance_matrix, i, j, nstd=2*nstd, clr="cornflowerblue", alpha=.75)
+                    
+                    # Define axes
+                    jp=i
+                    ip=j
+                    axis=allaxes[ip][jp]
+                    axis.locator_params(axis='x', nbins=nbinsx)
+                    axis.locator_params(axis='y', nbins=nbinsy)
+                    axis.add_artist(ere2)
+                    axis.add_artist(errorellipse)
+                    axis.axis(xyaxes2)
+                    if (i==0):
+                        axis.set_ylabel(self.param_names[j], fontsize=14)
+                    if (i>=0):
+                        axis.set_xlabel(self.param_names[i], fontsize=14)
+                """
                 # On-diagonal 1D marginalized plots
                 if (j==i):
                     y, x=self.oneD_constraints(covariance_matrix, i,j, clr="cornflowerblue")
@@ -315,17 +335,21 @@ class FisherAnalysis(object):
         plt.savefig(filename+'.png', format='png', dpi=1000) 
         plt.show()
 
-#--------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------------
 
 # Get parameter values and parameter names
 pl=DefaultParamList()
 P=pl.valueList()
 N=pl.nameLaTeX()
 
+##########################################################################################################
+# Plots for Fisher matrices that include both biases and kmu2 matrix (both of which are marginalized over)
+##########################################################################################################
+
 # Get 21cm plot
-F_21cm=FisherAnalysis(P,N).import_fisher('FishData/21cm_fisher_matrix.p')
+F_21cm=FisherAnalysis(P,N).import_fisher('FishData/21cm_bkmu2_fisher_matrix.p')
 C_21cm=FisherAnalysis(P,N).covariance(F_21cm)
-FisherAnalysis(P,N).plot_error_matrix(C_21cm, 'FishData/21cm_triangle')
+FisherAnalysis(P,N).plot_error_matrix(C_21cm, 'FishData/21cm_bkmu2_triangle')
 
 #Get CMBS4 plot
 F_S4=FisherAnalysis(P,N).import_fisher('FishData/CMBS4_fisher_matrix.p')
@@ -344,10 +368,52 @@ FisherAnalysis(P,N).plot_error_matrix(C_S4, 'FishData/CMBS4_triangle')
 #Plot of CMBS4 vs 21cm+CMBS4
 C_21cm_and_C_S4=FisherAnalysis(P,N).covariance(F_21cm+F_S4)
 C_S4_vs_C_21cm_and_S4=FisherAnalysis(P,N).covariance_array(C_S4, C_21cm_and_C_S4)
-FisherAnalysis(P,N).plot_error_matrix_combined(C_S4_vs_C_21cm_and_S4, 'FishData/CMBS4_vs_21cmCMBS4_triangle')
+FisherAnalysis(P,N).plot_error_matrix_combined(C_S4_vs_C_21cm_and_S4, 'FishData/CMBS4_vs_21cm_bkmu2_CMBS4_triangle')
 
 # Get 1-sigma errors
-print FisherAnalysis(P,N).error(C_21cm)             # 21cm alone
-print FisherAnalysis(P,N).error(C_S4)               # CMBS4 alone
-print FisherAnalysis(P,N).error(C_21cm_and_C_S4)    # 21cm + CMBS4 
+print '\n'
+print 'The following are the 1-sigma errors on parameters'
+print 'tau, omegac, As, theta, Neff, mnu, omegab, ns'
+print 'derived from matrices with both bias and kmu2 parameters'
+print 'for the following experiment combinations:'
+print '21cm errors are', FisherAnalysis(P,N).error(C_21cm)                   # 21cm alone
+print 'CMBS4 errors are', FisherAnalysis(P,N).error(C_S4)                    # CMBS4 alone
+print '21cm+CMBS4 errors are', FisherAnalysis(P,N).error(C_21cm_and_C_S4)    # 21cm + CMBS4 
 
+##########################################################################################################
+# Plots for Fisher matrices that include only biases (which are marginalized over) and not the kmu2 matrix 
+##########################################################################################################
+
+# Get 21cm plot
+F_21cm=FisherAnalysis(P,N).import_fisher('FishData/21cm_b_fisher_matrix.p')
+C_21cm=FisherAnalysis(P,N).covariance(F_21cm)
+FisherAnalysis(P,N).plot_error_matrix(C_21cm, 'FishData/21cm_b_triangle')
+
+#Get CMBS4 plot
+F_S4=FisherAnalysis(P,N).import_fisher('FishData/CMBS4_fisher_matrix.p')
+C_S4=FisherAnalysis(P,N).covariance(F_S4)
+FisherAnalysis(P,N).plot_error_matrix(C_S4, 'FishData/CMBS4_triangle')
+
+##Plot of 21cm vs CMBS4
+#C_21cm_vs_S4=FisherAnalysis(P,N).covariance_array(C_21cm, C_S4)
+#FisherAnalysis(P,N).plot_error_matrix_combined(C_21cm_vs_S4, '21cm_vs_CMBS4_triangle')
+
+##Plot of 21cm vs 21cm+CMBS4
+#C_21cm_and_C_S4=FisherAnalysis(P,N).covariance(F_21cm+F_S4)
+#C_21cm_vs_C_21cm_and_S4=FisherAnalysis(P,N).covariance_array(C_21cm, C_21cm_and_C_S4)
+#FisherAnalysis(P,N).plot_error_matrix_combined(C_21cm_vs_C_21cm_and_S4, '21cm_vs_21cmCMBS4_triangle')
+
+#Plot of CMBS4 vs 21cm+CMBS4
+C_21cm_and_C_S4=FisherAnalysis(P,N).covariance(F_21cm+F_S4)
+C_S4_vs_C_21cm_and_S4=FisherAnalysis(P,N).covariance_array(C_S4, C_21cm_and_C_S4)
+FisherAnalysis(P,N).plot_error_matrix_combined(C_S4_vs_C_21cm_and_S4, 'FishData/CMBS4_vs_21cm_b_CMBS4_triangle')
+
+# Get 1-sigma errors
+print '\n'
+print 'The following are the 1-sigma errors on parameters'
+print 'tau, omegac, As, theta, Neff, mnu, omegab, ns'
+print 'derived from matrices with bias parameters only (no kmu2)'
+print 'for the following experiment combinations:'
+print '21cm errors are', FisherAnalysis(P,N).error(C_21cm)                   # 21cm alone
+print 'CMBS4 errors are', FisherAnalysis(P,N).error(C_S4)                    # CMBS4 alone
+print '21cm+CMBS4 errors are', FisherAnalysis(P,N).error(C_21cm_and_C_S4)    # 21cm + CMBS4
