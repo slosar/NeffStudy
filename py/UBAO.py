@@ -1,7 +1,6 @@
-
-##
-## Ultimate BAO matrix
-##
+#
+# Ultimate BAO matrix.
+#
 
 from __future__ import division, print_function
 import sys
@@ -14,6 +13,7 @@ import scipy.linalg as la
 from FishMat import FishMat
 
 class UBFisher(FishMat):
+
     def __init__ (self, zmax=6.,fname="FishData/ultimate_41253_0.1_10_0.1_1_bao_0.expt"):
         da=open(fname).readlines()
         Nl=int(da[0].split()[-1])
