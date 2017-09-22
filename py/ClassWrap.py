@@ -1,7 +1,6 @@
 #
-# Wrapper for Class.
+# Wrapper for class
 #
-
 from __future__ import division, print_function
 from classy import Class
 import copy
@@ -12,22 +11,20 @@ import numpy as np
 
 class PkDiffer:
 
-    def __init__ (self,pl, zvals, kvals, kperp, kpar, Nkmu2):
+    def __init__ (self,pl, zvals, kvals, kperp, kpar):
         """ returns a list of Pks, each list containins 3D PS"""
         self.zstr=",".join(map(str,zvals+[zvals[-1]+2]))
         self.kvals=kvals
         self.kperp=kperp
         self.kpar=kpar
         self.zvals=zvals
-        self.Nkmu2=Nkmu2
         self.plist=copy.deepcopy(pl)
         self.cosmo = Class()
         self.ComputeCosmo(pl)
         bg=self.cosmo.get_background()
         zs=bg['z']
-        zs=zs[::-1]
-        Da=interp1d(zs,bg['comov. dist.'])  # cosmo.pk is actually all Mpc units
-        Hi=interp1d(zs,1./(bg['H [1/Mpc]']))  
+        Da=interp1d(zs,bg['comov. dist.'])## cosmo.pk is actually all Mpc units
+        Hi=interp1d(zs,1./(bg['H [1/Mpc]'])) # 
         self.Da_fid=Da
         self.Hi_fid=Hi
         self.cube0=self.getCube(pl,'store_fid')
@@ -40,18 +37,8 @@ class PkDiffer:
         #     ufrac=frac
         ufrac=frac
         npl=copy.deepcopy(self.plist)
-        if (pa.value==0):
-            if 'Mkmu2_' in pa.name:
-                step=0.01
-            elif 'Akmu2_' in pa.name:
-                step=100
-            else:
-                print('WTF?')
-                exit()
-        else:
-            step=pa.value*ufrac
         for fa in [+1,-1]:
-            nval=pa.value+fa*step
+            nval=pa.value*(1.+1.0*fa*ufrac)
             npl.setValue(pa.name,nval)
             if "b_" in pa.name:
                 mode="use_fid"
@@ -59,24 +46,23 @@ class PkDiffer:
                 mode="normal"
                 self.ComputeCosmo(npl)
             de.append(self.getCube(npl,mode))
-        #dp,dm=de
-        #toret=(dp-dm)/(2*step)
-        toret=[(dp-dm)/(2*step) for dp,dm in zip(de[0],de[1])]
+        toret=[(dp-dm)/(2*pa.value*fa*ufrac) for dp,dm in zip(de[1],de[0])]
         return toret
+    
+    
         
     def getCube(self,pl,mode='normal'):
         """mode defines caching of power spectra for biases
         mode can be 'store_fid', 'use_fid' or normal"""
         bg=self.cosmo.get_background()
         zs=bg['z']
-        zs=zs[::-1]
         Da=interp1d(zs,bg['comov. dist.'])## cosmo.pk is actually all Mpc units
         Hi=interp1d(zs,1./(bg['H [1/Mpc]'])) # 
         if (mode=='store_fid'):
             self.Da_fid=Da
             self.Hi_fid=Hi
-            self.cpk_cached, self.mu_cached=[],[]
-        pkl=[]
+            self.cpk_cached, self.mu_cached=[], []
+        pkl = []
         for i,z in enumerate(self.zvals):
             if (mode=='use_fid'):
                 cpk=self.cpk_cached[i]
@@ -87,31 +73,15 @@ class PkDiffer:
                 kt=np.sqrt(kperp_t**2+kpar_t**2)
                 mu=kpar_t/kt
                 #mu=self.kpar/np.sqrt(self.kperp**2+self.kpar**2)
-                #[print(k) for k in kt.flatten()]
-                #print(len(kt.flatten()))
                 cpk=[self.cosmo.pk(k,z) for k in kt.flatten()]
                 cpk=np.array(cpk).reshape(kt.shape)
-                M=np.zeros(kt.shape)
-                A=np.zeros(kt.shape)
-                for j in range(self.Nkmu2):
-                    for k in range(self.Nkmu2):
-                        m=pl.value('Mkmu2_'+str(i)+str(j)+str(k))
-                        a=pl.value('Akmu2_'+str(i)+str(j)+str(k))
-                        if (a==0) and (m==0):
-                            continue
-                        X=(kt**j)*(mu**(2*k))
-                        M+=X*m
-                        A+=X*a
-                cpk=A+cpk*(1+M)
-
-                if (mode=='store_fid'):
+                if mode=='store_fid':
                     self.cpk_cached.append(cpk)
                     self.mu_cached.append(mu)
-            
             f=self.growth_f(z)
             bpk=cpk*(pl.value('b_delta_'+str(i))+pl.value('b_eta_'+str(i))*f*mu**2)**2
             pkl.append(bpk)
-            
+
         return pkl
 
     def growth_f(self,z):

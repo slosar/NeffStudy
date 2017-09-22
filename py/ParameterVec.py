@@ -1,17 +1,16 @@
-#
-# Simple parameter vector class.
-#
+##
+## Simple parameter vector class
+##
 
+#
 # Simple class for dealing with Parameter.
-# Parameter has a name, a value, an error and some bounds.
+# Parameter has a name, a value, an error and some bounds
 # Names are also latex names.
 
 class Parameter:
-
-    def __init__(self,name,value, LaTeX):
+    def __init__(self,name,value):
         self.name=name
         self.value=value
-        self.LaTeX=LaTeX
 
     def sameParam(self,param2):
         return self.name==param2.name
@@ -43,18 +42,11 @@ class ParamList(list):
 
     def value(self,name):
         return self[self.nameList().index(name)].value
-
-    def nameLaTeX(self):
-        return [p.LaTeX for p in self]
         
         
 def DefaultParamList():
-    pl=[Parameter('tau',    0.07,         r'$\tau_{\mathrm{reio}}$'),
-        Parameter('omegac', 0.11987,      r'$\Omega_{\mathrm{cdm}}h^2$'),
-        Parameter('As',     2.204e-9,     r'$A_{\mathrm{s}}$'),
-        Parameter('theta',  1.0407781e-2, r'$\theta_{\mathrm{s}}$'),
-        Parameter('Neff',   3.046,        r'$N_{\mathrm{eff}}$'),
-        Parameter('mnu',    0.06,         r'$m_{\mathrm{ncdm}}$'),
-        Parameter('omegab', 0.022252,     r'$\Omega_{\mathrm{b}} h^2$'),
-        Parameter('ns',     0.96475,      r'$n_{\mathrm{s}}$')]
+    pl=[Parameter('tau',0.07),
+           Parameter('omegac',0.11987),Parameter('As',2.204e-9),Parameter('theta',1.0407781e-2),
+           Parameter('Neff',3.046),Parameter('mnu',0.06),
+           Parameter('omegab',0.022252),Parameter('ns',0.96475)]
     return ParamList(pl)
